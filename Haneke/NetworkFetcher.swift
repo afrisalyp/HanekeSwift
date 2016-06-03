@@ -23,6 +23,15 @@ extension HanekeGlobals {
     
 }
 
+class URLSessionDelegate: NSObject, NSURLSessionDelegate {
+    func URLSession(session: NSURLSession,
+                    task: NSURLSessionTask,
+                    didReceiveChallenge challenge: NSURLAuthenticationChallenge,
+                                        completionHandler: (NSURLSessionAuthChallengeDisposition, NSURLCredential?)  -> Void) {
+        completionHandler(NSURLSessionAuthChallengeDisposition.UseCredential, NSURLCredential(forTrust: challenge.protectionSpace.serverTrust!))
+    }
+}
+
 public class NetworkFetcher<T : DataConvertible> : Fetcher<T> {
     
     let URL : NSURL
@@ -34,7 +43,12 @@ public class NetworkFetcher<T : DataConvertible> : Fetcher<T> {
         super.init(key: key)
     }
     
-    public var session : NSURLSession { return NSURLSession.sharedSession() }
+    public var session : NSURLSession {
+        let configuration =
+            NSURLSessionConfiguration.defaultSessionConfiguration()
+        let session = NSURLSession(configuration: configuration, delegate: URLSessionDelegate(), delegateQueue: NSOperationQueue.mainQueue())
+        return session
+    }
     
     var task : NSURLSessionDataTask? = nil
     
@@ -102,4 +116,12 @@ public class NetworkFetcher<T : DataConvertible> : Fetcher<T> {
         Log.debug(localizedDescription, error)
         dispatch_async(dispatch_get_main_queue()) { fail(error) }
     }
+    
+    func URLSession(session: NSURLSession,
+                    task: NSURLSessionTask,
+                    didReceiveChallenge challenge: NSURLAuthenticationChallenge,
+                                        completionHandler: (NSURLSessionAuthChallengeDisposition, NSURLCredential?)  -> Void) {
+        completionHandler(NSURLSessionAuthChallengeDisposition.UseCredential, NSURLCredential(forTrust: challenge.protectionSpace.serverTrust!))
+    }
+
 }
